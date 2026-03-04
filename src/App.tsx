@@ -80,19 +80,124 @@ const initialLeads = [
 // Mapping of sources to their available tag keys and values
 const tagMapping: Record<string, Record<string, string[]>> = {
   'Zendesk': {
-    'category': ['üyelik-talebi', 'şikayet', 'bilgi-alma'],
-    'ticket-owner': ['yavuz.karavelioglu', 'admin', 'destek-ekibi'],
-    'priority': ['low', 'medium', 'high']
+    'category': ['üyelik-talebi', 'şikayet', 'bilgi-alma', 'iptal-talebi', 'teknik-destek', 'odeme-sorunu'],
+    'ticket-owner': ['yavuz.karavelioglu', 'admin', 'destek-ekibi', 'ayse.yilmaz', 'mehmet.demir', 'canan.kaya'],
+    'priority': ['low', 'medium', 'high', 'urgent'],
+    'status': ['open', 'pending', 'resolved', 'closed'],
+    'department': ['sales', 'support', 'billing', 'marketing']
   },
   'Instagram': {
-    'ad-group': ['fitness-lovers', 'yoga-community', 'crossfit-istanbul'],
-    'region': ['istanbul', 'ankara', 'izmir'],
-    'content-type': ['video', 'image', 'carousel']
+    'ad-group': ['fitness-lovers', 'yoga-community', 'crossfit-istanbul', 'healthy-eating', 'weight-loss', 'muscle-gain'],
+    'region': ['istanbul', 'ankara', 'izmir', 'antalya', 'bursa', 'adana'],
+    'content-type': ['video', 'image', 'carousel', 'story', 'reels'],
+    'influencer': ['fitness_guru', 'healthy_life', 'gym_rat_99']
   },
   'Facebook': {
-    'campaign-id': ['fb-001', 'fb-002'],
-    'placement': ['feed', 'stories']
+    'campaign-id': ['fb-001', 'fb-002', 'fb-003', 'fb-004', 'fb-005'],
+    'placement': ['feed', 'stories', 'marketplace', 'right-column'],
+    'audience': ['lookalike-1%', 'retargeting-7d', 'interest-gym']
   }
+};
+
+const SearchableDropdown = ({ 
+  label, 
+  placeholder, 
+  options = [], 
+  value, 
+  onChange,
+  disabled = false
+}: { 
+  label: string, 
+  placeholder: string, 
+  options?: string[],
+  value?: string,
+  onChange?: (val: string) => void,
+  disabled?: boolean
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  const filteredOptions = options.filter(opt => 
+    opt.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className={`flex flex-col gap-1 relative ${disabled ? 'opacity-50' : ''}`} ref={dropdownRef}>
+      <label className="text-xs font-medium text-gray-500">{label}</label>
+      <div 
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`w-full h-10 px-3 py-2 text-sm bg-white border ${isOpen ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-gray-300'} rounded flex items-center justify-between cursor-pointer transition-all ${disabled ? 'cursor-not-allowed' : ''}`}
+      >
+        <span className={value ? 'text-gray-800' : 'text-gray-400'}>
+          {value || placeholder}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 max-h-64 flex flex-col overflow-hidden">
+          <div className="p-2 border-b border-gray-100 bg-gray-50">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input 
+                autoFocus
+                type="text"
+                placeholder="Ara..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
+          <div className="overflow-y-auto py-1">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map(opt => (
+                <div 
+                  key={opt}
+                  onClick={() => {
+                    onChange?.(opt);
+                    setIsOpen(false);
+                    setSearchQuery('');
+                  }}
+                  className={`px-3 py-2 text-sm hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer transition-colors ${value === opt ? 'bg-emerald-50 text-emerald-700 font-medium' : ''}`}
+                >
+                  {opt}
+                </div>
+              ))
+            ) : (
+              <div className="px-3 py-4 text-xs text-center text-gray-400 italic">
+                Sonuç bulunamadı
+              </div>
+            )}
+          </div>
+          {value && (
+            <div 
+              onClick={() => {
+                onChange?.('');
+                setIsOpen(false);
+                setSearchQuery('');
+              }}
+              className="p-2 text-center text-xs text-red-500 hover:bg-red-50 cursor-pointer border-t border-gray-100 font-medium"
+            >
+              Seçimi Temizle
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 };
 
 const FilterDropdown = ({ 
@@ -153,6 +258,10 @@ const getTagColor = (key: string) => {
     'content-type': { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-100' },
     'campaign-id': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-100' },
     'placement': { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-100' },
+    'status': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-100' },
+    'department': { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-100' },
+    'influencer': { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-100' },
+    'audience': { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-100' },
   };
 
   return colorMap[key] || { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' };
@@ -208,7 +317,7 @@ export default function App() {
           <FilterDropdown label="Statü" placeholder="Seçiniz" />
           
           {/* Source Filter */}
-          <FilterDropdown 
+          <SearchableDropdown 
             label="Kaynak" 
             placeholder="Seçiniz" 
             options={Object.keys(tagMapping)}
@@ -217,7 +326,7 @@ export default function App() {
           />
 
           {/* Dynamic Tag Key Filter */}
-          <FilterDropdown 
+          <SearchableDropdown 
             label="Tag Anahtarı (Key)" 
             placeholder="Key Seçiniz" 
             options={availableKeys}
@@ -227,7 +336,7 @@ export default function App() {
           />
 
           {/* Dynamic Tag Value Filter */}
-          <FilterDropdown 
+          <SearchableDropdown 
             label="Tag Değeri (Value)" 
             placeholder="Value Seçiniz" 
             options={availableValues}
